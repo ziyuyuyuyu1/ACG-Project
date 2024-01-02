@@ -93,6 +93,7 @@ def get_default_configs():
 
   # rendering
   config.render = render = ml_collections.ConfigDict()
-  config.eval.classifier_scale = 10.
+  config.eval.classifier_scale = 2.
+  config.eval.classifier_path = "PLACEHOLDER"
 
   return config

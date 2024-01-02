@@ -4,7 +4,7 @@ import numpy as np
 
 import logging
 # Keep the import below for registering all model definitions
-from .models import ddpm_res64, ddpm_res128
+from .models import ddpm_res64
 
 from . import losses
 from .models import utils as mutils

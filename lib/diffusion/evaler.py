@@ -58,7 +58,7 @@ def uncond_gen(
             }
             
             unet_model = DDPMRes64Encode(**model_config).to(config.device)
-            unet_model.load_state_dict(torch.load('/share1/jialuo/classifier_80000/checkpoints/checkpoint_80000.pth')['model'])
+            unet_model.load_state_dict(torch.load(config.eval.classifier_path)['model'])
             unet_model.eval()
             
             def classifier_fn(x, t, y=None):
