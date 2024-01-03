@@ -28,3 +28,14 @@ python3 eval.py --config configs/res64.json --sample-path $PATH_TO_NPY --out-dir
 After that you can get the resulting ```.obj``` files.
 
 ### Texture Generation
+
+First run:
+``` bash
+cd nvdiffrec
+python3 sd_utils.py --prompt=$TEXTURE_OBJ_DECRIPTION --seed=$SEED
+```
+The initial texture image will be saved at ```img_tinted.png```. Then run:
+```bash
+python fit_dmtets.py --out-dir $OUT_DIR --index 0 --split-size 100000 --prompt $TEXTURE_OBJ_DECRIPTION --val_save_name $SAVE_NAME --load_tet --load_tet_path $TET_PATH
+```
+You can refer ```SAVE_NAME``` to live view the rendered results. ```TET_PATH``` is a ```.pt``` file where you save your preprocessed object. 
