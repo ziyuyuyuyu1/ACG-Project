@@ -298,14 +298,14 @@ class DMTetGeometryFixedTopo(torch.nn.Module):
         tet_centers = self.getTetCenters() if get_visible_tets else None
         return render.render_mesh(
             glctx, opt_mesh, target['mvp'], target['campos'], lgt, target['resolution'], spp=target['spp'], 
-            msaa=True, background=target['background'], bsdf=bsdf, xfm_lgt=xfm_lgt, tet_centers=tet_centers)
+            msaa=True, background=target['background'], bsdf=bsdf, xfm_lgt=xfm_lgt, tet_centers=tet_centers, FLAGS=self.FLAGS)
 
 
     def render_with_mesh(self, glctx, target, lgt, opt_material, bsdf=None, xfm_lgt=None):
         opt_mesh = self.getMesh(opt_material)
         return opt_mesh, render.render_mesh(
             glctx, opt_mesh, target['mvp'], target['campos'], lgt, target['resolution'], spp=target['spp'], 
-            num_layers=self.FLAGS.layers, msaa=True, background=target['background'], bsdf=bsdf, xfm_lgt=xfm_lgt)
+            num_layers=self.FLAGS.layers, msaa=True, background=target['background'], bsdf=bsdf, xfm_lgt=xfm_lgt, FLAGS=self.FLAGS)
         
     def gen_target(self, batch):
         iter_res = self.FLAGS.train_res

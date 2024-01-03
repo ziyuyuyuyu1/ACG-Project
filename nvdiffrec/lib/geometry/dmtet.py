@@ -354,12 +354,12 @@ class DMTetGeometry(torch.nn.Module):
         opt_mesh = self.getMesh(opt_material, ema=ema)
         tet_centers = self.getTetCenters() if get_visible_tets else None
         return render.render_mesh(glctx, opt_mesh, target['mvp'], target['campos'], lgt, target['resolution'], spp=target['spp'], 
-                                        msaa=True, background=target['background'], bsdf=bsdf, xfm_lgt=xfm_lgt, tet_centers=tet_centers)
+                                        msaa=True, background=target['background'], bsdf=bsdf, xfm_lgt=xfm_lgt, tet_centers=tet_centers, FLAGS=self.FLAGS)
 
     def render_with_mesh(self, glctx, target, lgt, opt_material, bsdf=None, noise=0.0, ema=False, xfm_lgt=None):
         opt_mesh = self.getMesh(opt_material, noise=noise, ema=ema)
         return opt_mesh, render.render_mesh(glctx, opt_mesh, target['mvp'], target['campos'], lgt, target['resolution'], spp=target['spp'], 
-                                        msaa=True, background=target['background'], bsdf=bsdf, xfm_lgt=xfm_lgt)
+                                        msaa=True, background=target['background'], bsdf=bsdf, xfm_lgt=xfm_lgt, FLAGS=self.FLAGS)
 
     def update_ema(self, ema_coeff=0.9):
         self.sdf_buffer.push(self.sdf)
@@ -370,7 +370,7 @@ class DMTetGeometry(torch.nn.Module):
     def render_ema(self, glctx, target, lgt, opt_material, bsdf=None, xfm_lgt=None):
         opt_mesh = self.getMesh(opt_material, ema=True)
         return render.render_mesh(glctx, opt_mesh, target['mvp'], target['campos'], lgt, target['resolution'], spp=target['spp'], 
-                                        msaa=True, background=target['background'], bsdf=bsdf, xfm_lgt=xfm_lgt)
+                                        msaa=True, background=target['background'], bsdf=bsdf, xfm_lgt=xfm_lgt, FLAGS=self.FLAGS)
     def gen_target(self, batch):
         iter_res = self.FLAGS.train_res
         proj_mtx = render_utils.perspective(np.deg2rad(45), iter_res[1] / iter_res[0], self.FLAGS.cam_near_far[0], self.FLAGS.cam_near_far[1])

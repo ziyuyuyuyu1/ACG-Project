@@ -35,7 +35,8 @@ def shade(
         lgt,
         material,
         bsdf,
-        xfm_lgt=None
+        xfm_lgt=None,
+        FLAGS=None
     ):
 
     ################################################################################
@@ -58,32 +59,34 @@ def shade(
         image = Image.fromarray((material['kd'].data * 255).squeeze(0).cpu().detach().numpy().astype('uint8'))
         image.thumbnail((1000, 1000))
         image.save('./test1.png')
-        # try:
-        #     kd_jitter  = material['kd'].sample(gb_texc + torch.normal(mean=0, std=0.005, size=gb_texc.shape, device="cuda"), gb_texc_deriv)
-        #     if 'alpha' in material:
-        #         raise NotImplementedError
-        #         try:
-        #             alpha_mtl = material['alpha'].sample(gb_texc, gb_texc_deriv)
-        #         except:
-        #             alpha_mtl = material['alpha'].sample(gb_pos + torch.normal(mean=0, std=0.01, size=gb_pos.shape, device="cuda"))
-        #     kd = material['kd'].sample(gb_texc, gb_texc_deriv)
-        #     ks = material['ks'].sample(gb_texc, gb_texc_deriv)[..., 0:3] # skip alpha
-        #     kd_grad    = torch.sum(torch.abs(kd_jitter[..., 0:3] - kd[..., 0:3]), dim=-1, keepdim=True) / 3
-        # except:
-        #     kd_jitter  = kd = material['kd'].data[0].expand(*gb_pos.size())
-        #     ks = material['ks'].data[0].expand(*gb_pos.size())[..., 0:3] # skip alpha
-        #     kd_grad    = torch.sum(torch.abs(kd_jitter[..., 0:3] - kd[..., 0:3]), dim=-1, keepdim=True) / 3
-        # -------------------------------
-        kd_jitter  = material['kd'].sample(gb_texc + torch.normal(mean=0, std=0.005, size=gb_texc.shape, device="cuda"), gb_texc_deriv)
-        if 'alpha' in material:
-            raise NotImplementedError
+        if FLAGS.prompt is None:
             try:
-                alpha_mtl = material['alpha'].sample(gb_texc, gb_texc_deriv)
+                kd_jitter  = material['kd'].sample(gb_texc + torch.normal(mean=0, std=0.005, size=gb_texc.shape, device="cuda"), gb_texc_deriv)
+                if 'alpha' in material:
+                    raise NotImplementedError
+                    try:
+                        alpha_mtl = material['alpha'].sample(gb_texc, gb_texc_deriv)
+                    except:
+                        alpha_mtl = material['alpha'].sample(gb_pos + torch.normal(mean=0, std=0.01, size=gb_pos.shape, device="cuda"))
+                kd = material['kd'].sample(gb_texc, gb_texc_deriv)
+                ks = material['ks'].sample(gb_texc, gb_texc_deriv)[..., 0:3] # skip alpha
+                kd_grad    = torch.sum(torch.abs(kd_jitter[..., 0:3] - kd[..., 0:3]), dim=-1, keepdim=True) / 3
             except:
-                alpha_mtl = material['alpha'].sample(gb_pos + torch.normal(mean=0, std=0.01, size=gb_pos.shape, device="cuda"))
-        kd = material['kd'].sample(gb_texc, gb_texc_deriv)
-        ks = material['ks'].sample(gb_texc, gb_texc_deriv)[..., 0:3] # skip alpha
-        kd_grad    = torch.sum(torch.abs(kd_jitter[..., 0:3] - kd[..., 0:3]), dim=-1, keepdim=True) / 3
+                kd_jitter  = kd = material['kd'].data[0].expand(*gb_pos.size())
+                ks = material['ks'].data[0].expand(*gb_pos.size())[..., 0:3] # skip alpha
+                kd_grad    = torch.sum(torch.abs(kd_jitter[..., 0:3] - kd[..., 0:3]), dim=-1, keepdim=True) / 3
+        # -------------------------------
+        else:
+            kd_jitter  = material['kd'].sample(gb_texc + torch.normal(mean=0, std=0.005, size=gb_texc.shape, device="cuda"), gb_texc_deriv)
+            if 'alpha' in material:
+                raise NotImplementedError
+                try:
+                    alpha_mtl = material['alpha'].sample(gb_texc, gb_texc_deriv)
+                except:
+                    alpha_mtl = material['alpha'].sample(gb_pos + torch.normal(mean=0, std=0.01, size=gb_pos.shape, device="cuda"))
+            kd = material['kd'].sample(gb_texc, gb_texc_deriv)
+            ks = material['ks'].sample(gb_texc, gb_texc_deriv)[..., 0:3] # skip alpha
+            kd_grad    = torch.sum(torch.abs(kd_jitter[..., 0:3] - kd[..., 0:3]), dim=-1, keepdim=True) / 3
 
     # Separate kd into alpha and color, default alpha = 1
     alpha = kd[..., 3:4] if kd.shape[-1] == 4 else torch.ones_like(kd[..., 0:1])
@@ -172,7 +175,8 @@ def render_layer(
         msaa,
         bsdf,
         xfm_lgt = None,
-        flat_shading = False
+        flat_shading = False,
+        FLAGS=None
     ):
 
     full_res = [resolution[0]*spp, resolution[1]*spp]
@@ -183,13 +187,15 @@ def render_layer(
 
     # Scale down to shading resolution when MSAA is enabled, otherwise shade at full resolution
     if spp > 1 and msaa:
-        # rast_out_s = util.scale_img_nhwc(rast, resolution, mag='nearest', min='nearest')
-
-        rast_out_s = util.scale_img_nhwc(rast, [resolution, resolution], mag='nearest', min='nearest')
-        rast_out_deriv_s = util.scale_img_nhwc(rast_deriv, [resolution, resolution], mag='nearest', min='nearest') * spp
+        if FLAGS.prompt is None:
+            rast_out_s = util.scale_img_nhwc(rast, resolution, mag='nearest', min='nearest')
+        else:
+            rast_out_s = util.scale_img_nhwc(rast, [resolution, resolution], mag='nearest', min='nearest')
+            rast_out_deriv_s = util.scale_img_nhwc(rast_deriv, [resolution, resolution], mag='nearest', min='nearest') * spp
     else:
         rast_out_s = rast
-        rast_out_deriv_s = rast_deriv
+        if FLAGS.prompt is not None:
+            rast_out_deriv_s = rast_deriv
 
     ################################################################################
     # Interpolate attributes
@@ -219,15 +225,17 @@ def render_layer(
         gb_tangent = None
 
     # Do not use texture coordinate in our case
-    # gb_texc, gb_texc_deriv = None, None
-    gb_texc, gb_texc_deriv = interpolate(mesh.v_tex[None, ...], rast_out_s, mesh.t_tex_idx.int(), rast_db=rast_out_deriv_s)
+    if FLAGS.prompt is None:
+        gb_texc, gb_texc_deriv = None, None
+    else:
+        gb_texc, gb_texc_deriv = interpolate(mesh.v_tex[None, ...], rast_out_s, mesh.t_tex_idx.int(), rast_db=rast_out_deriv_s)
 
 
     ################################################################################
     # Shade
     ################################################################################
     buffers = shade(gb_pos, gb_geometric_normal, gb_normal, gb_tangent, gb_texc, gb_texc_deriv, 
-        view_pos, lgt, mesh.material, bsdf, xfm_lgt=xfm_lgt)
+        view_pos, lgt, mesh.material, bsdf, xfm_lgt=xfm_lgt, FLAGS=FLAGS)
 
     #### get a mask on mesh (used to identify foreground)
     mask_cont, _ = interpolate(torch.ones_like(mesh.v_pos[None, :, :1], device=mesh.v_pos.device), rast_out_s, mesh.t_pos_idx.int())
@@ -269,7 +277,8 @@ def render_mesh(
         bsdf        = None,
         xfm_lgt     = None,
         tet_centers = None,
-        flat_shading = False
+        flat_shading = False,
+        FLAGS=None
     ):
 
     def prepare_input_vector(x):
@@ -312,12 +321,12 @@ def render_mesh(
     # Render all layers front-to-back
     with dr.DepthPeeler(ctx, v_pos_clip, mesh.t_pos_idx.int(), full_res) as peeler:
         rast, db = peeler.rasterize_next_layer()
-        layers = [(render_layer(rast, db, mesh, view_pos, lgt, resolution, spp, msaa, bsdf, xfm_lgt, flat_shading), rast)]
+        layers = [(render_layer(rast, db, mesh, view_pos, lgt, resolution, spp, msaa, bsdf, xfm_lgt, flat_shading, FLAGS=FLAGS), rast)]
         rast_1st_layer = rast
         # with torch.no_grad():
         if True:
             rast, db = peeler.rasterize_next_layer()
-            layers2 = [(render_layer(rast, db, mesh, view_pos, lgt, resolution, spp, msaa, bsdf, xfm_lgt, flat_shading), rast)]
+            layers2 = [(render_layer(rast, db, mesh, view_pos, lgt, resolution, spp, msaa, bsdf, xfm_lgt, flat_shading, FLAGS=FLAGS), rast)]
 
     # Setup background
     if background is not None:

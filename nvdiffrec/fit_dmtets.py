@@ -711,7 +711,7 @@ if __name__ == "__main__":
     FLAGS.display             = None                     # Conf validation window/display. E.g. [{"relight" : <path to envlight>}]
     FLAGS.camera_space_light  = False                    # Fixed light in camera space. This is needed for setups like ethiopian head where the scanned object rotates on a stand.
     FLAGS.lock_light          = False                    # Disable light optimization in the second pass
-    FLAGS.lock_pos            = True                   # Disable vertex position optimization in the second pass
+    FLAGS.lock_pos            = FLAGS.prompt is not None                   # Disable vertex position optimization in the second pass
     FLAGS.sdf_regularizer     = 0.2                      # Weight for sdf regularizer (see paper for details)
     FLAGS.laplace             = "relative"               # Mesh Laplacian ["absolute", "relative"]
     FLAGS.laplace_scale       = 10000.0                  # Weight for sdf regularizer. Default is relative with large weight
@@ -763,9 +763,9 @@ if __name__ == "__main__":
     print(f"Using dmt grid of resolution {FLAGS.dmtet_grid}")
 
     glctx = dr.RasterizeCudaContext()    
-
-    img = imread('/home/jialuo/CG_project/MeshDiffusion/nvdiffrec/img_tinted.png')
-    x_img = torch.tensor(img, dtype=torch.float32, device='cuda') / 255.0
+    if FLAGS.prompt is not None:
+        img = imread('/home/jialuo/CG_project/MeshDiffusion/nvdiffrec/img_tinted.png')
+        x_img = torch.tensor(img, dtype=torch.float32, device='cuda') / 255.0
     ### Default mtl
     mtl_default = {
         'name' : '_default_mat',
@@ -776,7 +776,7 @@ if __name__ == "__main__":
         # 'kd'   : texture.Texture2D(torch.tensor([0.1, 0.9, 0.1], dtype=torch.float32, device='cuda'), trainable=True),
         # 'kd'   : texture.Texture2D(torch.randn((512, 512, 3), device='cuda', dtype=torch.float32), trainable=True),
         # 'kd'   : texture.Texture2D(torch.full((512, 512, 3), 1.0, device='cuda', dtype=torch.float32), trainable=True),
-        'kd'   : texture.Texture2D(x_img, trainable=(FLAGS.prompt is not None)),
+        'kd'   : texture.Texture2D(x_img, trainable=(FLAGS.prompt is not None)) if FLAGS.prompt is not None else texture.Texture2D(torch.tensor([0.75, 0.3, 0.6], dtype=torch.float32, device='cuda'), trainable=False),
         'ks'   : texture.Texture2D(torch.tensor([0.0, 0.0, 0.0], dtype=torch.float32, device='cuda'), trainable=False)
     }
 
@@ -854,7 +854,7 @@ if __name__ == "__main__":
             if not FLAGS.normal_only:
                 mat = initial_guess_material(geometry, True, FLAGS, mtl_default)
             else:
-                mat = initial_guess_material_knownkskd(geometry, False, FLAGS, mtl_default)
+                mat = initial_guess_material_knownkskd(geometry, FLAGS.prompt is None, FLAGS, mtl_default)
 
             print("Start optimization")
             sys.stdout.flush()
@@ -937,9 +937,10 @@ if __name__ == "__main__":
             
             if FLAGS.local_rank == 0 and FLAGS.validate and FLAGS.prompt is None:
                 validate(glctx, geometry, mat, lgt, dataset_validate, os.path.join(FLAGS.out_dir, f"val_viz/dmtet_validate_{FLAGS.index}_{k}_{FLAGS.split_size}"), FLAGS)
-            os.makedirs(os.path.join(FLAGS.out_dir, 'mtls'), exist_ok=True)
-            mesh_ = geometry.getMesh(mat)
-            obj.write_obj(os.path.join(FLAGS.out_dir, 'mtls'), mesh_)
+            if FLAG.prompt is not None:    
+                os.makedirs(os.path.join(FLAGS.out_dir, 'mtls'), exist_ok=True)
+                mesh_ = geometry.getMesh(mat)
+                obj.write_obj(os.path.join(FLAGS.out_dir, 'mtls'), mesh_)
             # Free temporaries / cached memory
             del geometry
             if FLAGS.prompt is None:

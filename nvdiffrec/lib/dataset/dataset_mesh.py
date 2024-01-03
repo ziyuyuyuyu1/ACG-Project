@@ -118,7 +118,7 @@ class DatasetMesh(Dataset):
 
         with torch.no_grad():
             render_out = render.render_mesh(self.glctx, self.ref_mesh, mvp, campos, self.envlight, iter_res, spp=iter_spp, 
-                                num_layers=self.FLAGS.layers, msaa=True, background=None, xfm_lgt=camera_mv, flat_shading=self.flat_shading)
+                                num_layers=self.FLAGS.layers, msaa=True, background=None, xfm_lgt=camera_mv, flat_shading=self.flat_shading, FLAGS=self.FLAGS)
             img = render_out['shaded']
             img_second = render_out['shaded_second']
             normal = render_out['normal']
