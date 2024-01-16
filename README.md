@@ -6,7 +6,7 @@ The code for geometry generation is in **./lib** directory.
 
 The code for texture generation is in **./nvdiffrec** directory.
 
-The checkpoints are <a href="https://huggingface.co/ziyuyuyuyu1/ACG-class-cond-ckpt/">here</a>.
+The checkpoints are <a href="https://cloud.tsinghua.edu.cn/d/c62003eda62845f68006/">here</a>.
 
 
 ### Mesh Generation
